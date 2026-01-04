@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         Youtube shorts blocker
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/rubenguc/tampermonkey-scripts/blob/main/youtube-shorts-blocker.js
 // @version      1.0
-// @description  Delete shorts sections
+// @description  Delete Youtube shorts sections
 // @author       rubenguc
 // @match        *://*.youtube.com/*
 // @icon         https://www.google.com/s2/favicons?bb=1&domain=youtube.com
-// @grant        none
 // @run-at       document-start
 // ==/UserScript==
 
