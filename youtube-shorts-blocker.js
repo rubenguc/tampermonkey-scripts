@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Youtube shorts blocker
 // @namespace    https://github.com/rubenguc/tampermonkey-scripts/blob/main/youtube-shorts-blocker.js
-// @version      1.0
+// @version      1.1
 // @description  Delete Youtube shorts sections
 // @author       rubenguc
 // @match        *://*.youtube.com/*
@@ -9,47 +9,62 @@
 // @run-at       document-start
 // ==/UserScript==
 
-(function () {
-  "use strict";
+(function() {
+    'use strict';
 
-  const removeShorts = () => {
-    const sections = [
-      "grid-shelf-view-model",
-      "ytd-rich-section-renderer",
-      "ytd-reel-shelf-renderer",
-      "ytd-guide-entry-renderer:has(a[title='Shorts'])",
-      "ytd-mini-guide-entry-renderer[aria-label='Shorts']",
-    ];
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Ocultar secciones de Shorts por atributos y tags */
+        ytd-rich-section-renderer:has([is-shorts]),
+        ytd-reel-shelf-renderer,
+        ytd-rich-shelf-renderer[is-shorts],
+        ytd-reel-video-renderer,
 
-    sections.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((el) => {
-        if (el.innerText.toLowerCase().includes("shorts")) {
-          el.remove();
+        /* Ocultar videos individuales de shorts */
+        ytd-video-renderer:has(a[href^="/shorts/"]),
+        ytd-rich-item-renderer:has(a[href^="/shorts/"]),
+        ytd-grid-video-renderer:has(a[href^="/shorts/"]),
+
+        /* Ocultar botones en menús */
+        ytd-guide-entry-renderer:has(a[title*="Shorts"]),
+        ytd-mini-guide-entry-renderer[aria-label*="Shorts"],
+        #endpoint.yt-simple-endpoint.ytd-guide-entry-renderer[title*="Shorts"] {
+            display: none !important;
         }
-      });
+    `;
+
+    const target = document.head || document.documentElement;
+    if (target) {
+        target.appendChild(style);
+    }
+
+    const removeShortsLogic = (root) => {
+        const elements = root.querySelectorAll?.('ytd-rich-section-renderer, ytd-reel-shelf-renderer, ytd-rich-item-renderer');
+        if (!elements) return;
+
+        elements.forEach(el => {
+            if (el.innerText?.includes("Shorts") || el.querySelector('a[href^="/shorts/"]')) {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+    };
+
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) removeShortsLogic(node);
+            });
+        }
     });
 
-    const shortLinks = document.querySelectorAll("a[href^='/shorts/']");
+    const start = () => {
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true });
+            removeShortsLogic(document.body);
+        } else {
+            requestAnimationFrame(start);
+        }
+    };
 
-    shortLinks.forEach((link) => {
-      const videoContainer = link.closest(
-        "ytd-video-renderer, ytd-rich-item-renderer, ytd-grid-video-renderer",
-      );
-      if (videoContainer) {
-        videoContainer.remove();
-      }
-    });
-  };
-
-  const observer = new MutationObserver(() => {
-    removeShorts();
-  });
-
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  });
-
-  window.addEventListener("load", removeShorts);
-  window.addEventListener("yt-navigate-finish", removeShorts);
+    start();
 })();
